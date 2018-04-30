@@ -1,2 +1,2 @@
-# sn-rest-client
-node.js REST module for service now
+# A REST nodejs module for Service-Now
+
