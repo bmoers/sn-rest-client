@@ -89,7 +89,7 @@ module.exports = function (_config) {
 
             var options = Object.assign({
                 rawResponse: false,
-                autoPagination : true
+                autoPagination: true
             }, properties, {
                 url: thisURL,
                 resolveWithFullResponse: true,
@@ -204,12 +204,9 @@ module.exports = function (_config) {
         },
         post: function (properties, body) {
             if (body === undefined) {
-                return Promise.try(function (body) {
-                    return run(Object.assign({}, properties, {
-                        method: 'post',
-                        body: body
-                    }));
-                });
+                return run(Object.assign({}, properties, {
+                    method: 'post'
+                }));
             } else {
                 return run(Object.assign({}, properties, {
                     method: 'post',
@@ -219,12 +216,9 @@ module.exports = function (_config) {
         },
         put: function (properties, body) {
             if (body === undefined) {
-                return Promise.try(function (body) {
-                    return run(Object.assign({}, properties, {
-                        method: 'put',
-                        body: body
-                    }));
-                });
+                return run(Object.assign({}, properties, {
+                    method: 'put'
+                }));
             } else {
                 return run(Object.assign({}, properties, {
                     method: 'put',
@@ -234,12 +228,9 @@ module.exports = function (_config) {
         },
         patch: function (properties, body) {
             if (body === undefined) {
-                return Promise.try(function (body) {
-                    return run(Object.assign({}, properties, {
-                        method: 'patch',
-                        body: body
-                    }));
-                });
+                return run(Object.assign({}, properties, {
+                    method: 'patch'
+                }));
             } else {
                 return run(Object.assign({}, properties, {
                     method: 'patch',
@@ -257,7 +248,7 @@ module.exports = function (_config) {
         },
         getAccessToken: function () {
             return config.access_token;
-        }, 
+        },
         getHostName: function () {
             return config.host_name;
         }
