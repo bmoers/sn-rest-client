@@ -29,19 +29,25 @@ function getLocation(href) {
 module.exports = function (_config) {
 
     var config = Object.assign({
-        host_name: null, // e.g. "https://dev14080.service-now.com" 
+        hostName: null, // e.g. "https://dev14080.service-now.com" 
         proxy: {
             proxy: null,
             strictSSL: false
         },
-        client_id: null,
-        client_secret: null,
-        auth_code: null,
-        access_token: null,
-        refresh_token: null,
+        auth: {
+            clientId: null,
+            clientSecret: null,
+            authCode: null,
+            accessToken: null,
+            refreshToken: null,
+
+            username: null,
+            password: null
+        },
         debug: false,
         silent: false,
-        jar: false
+        jar: false,
+        gzip: true
     }, _config);
 
     rp.debug = config.debug;
@@ -71,8 +77,8 @@ module.exports = function (_config) {
             error;
         var rpd = rp.defaults({
             json: true,
-            baseUrl: config.host_name,
-            gzip: false,
+            baseUrl: config.hostName,
+            gzip: config.gzip,
             strictSSL: config.proxy.strictSSL,
             proxy: config.proxy.proxy,
             encoding: "utf8",
@@ -92,12 +98,20 @@ module.exports = function (_config) {
                 autoPagination: true
             }, properties, {
                 url: thisURL,
-                resolveWithFullResponse: true,
-                auth: {
-                    "bearer": config.access_token
-                }
+                resolveWithFullResponse: true
             });
 
+            if (config.auth.username) {
+                options.auth = {
+                    username: config.auth.username,
+                    password: config.auth.password
+                };
+            } else {
+                options.auth = {
+                    "bearer": config.auth.accessToken
+                };
+            }
+            
             return rpd(options)
                 .then(function (response) {
                     //log("options.simple ::: ", options.simple)
@@ -153,6 +167,9 @@ module.exports = function (_config) {
                     return hasNextURL;
 
                 }).catch(function (err) {
+                    if (config.auth.username)
+                        throw err;
+                    
                     error = err;
                     if ([400, 401].indexOf(err.statusCode) != -1 && failureCount < 1) { // 400 in case its the application or updateSet API
                         log("access_token expired, request new one");
@@ -162,9 +179,9 @@ module.exports = function (_config) {
                                 url: "oauth_token.do",
                                 form: {
                                     grant_type: "refresh_token",
-                                    client_id: config.client_id,
-                                    client_secret: config.client_secret,
-                                    refresh_token: config.refresh_token
+                                    client_id: config.auth.clientId,
+                                    client_secret: config.auth.clientSecret,
+                                    refresh_token: config.auth.refreshToken
                                 }
                             })
                             .then(function (body) {
@@ -173,20 +190,17 @@ module.exports = function (_config) {
                                 }
                                 // update config with access_token
                                 //log("body ACCESS TOKEN", body);
-                                config.access_token = body.access_token;
-                                config.refresh_token = body.refresh_token;
+                                config.auth.accessToken = body.access_token;
+                                config.auth.refreshToken = body.refresh_token;
                             })
                             .then(function () {
-                                //console.info("going to call URL", thisURL);
                                 return thisURL;
                             })
                             .catch(function (err) {
-                                //console.error("Auth failed");
                                 throw error;
-                                //throw err;
                             });
                     } else {
-                        throw err; //Error("cant authenticate user, please provide correct credentials", err);
+                        throw err;
                     }
                 });
 
@@ -244,13 +258,13 @@ module.exports = function (_config) {
             }), callback);
         },
         getRefreshToken: function () {
-            return config.refresh_token;
+            return config.auth.refreshToken;
         },
         getAccessToken: function () {
-            return config.access_token;
+            return config.auth.accessToken;
         },
         getHostName: function () {
-            return config.host_name;
+            return config.hostName;
         }
     };
 };
