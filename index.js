@@ -107,7 +107,7 @@ module.exports = function (_config) {
                         return Promise.reject(err)
 
                 } else if (err.name == 'StatusCodeError') {
-                    if (!(statusCode === 429 || (500 <= statusCode && statusCode < 600))) // 429 means "Too Many Requests" while 5xx means "Server Error"
+                    if (!(statusCode === 429 || (statusCode != 503 && statusCode != 504 && 500 <= statusCode && statusCode < 600))) // 429 means "Too Many Requests" while 5xx means "Server Error"
                         return Promise.reject(err)
                 } else {
                     console.error('[SN-REST-CLIENT] Unknown error: %j', err)
