@@ -48,7 +48,9 @@ module.exports = function (_config) {
         debug: false,
         silent: false,
         jar: false,
-        gzip: true
+        gzip: true,
+        retry: 1,
+        delay: 100,
     }, _config);
 
     rp.debug = config.debug;
@@ -81,8 +83,8 @@ module.exports = function (_config) {
 
     const retryRequest = function (options) {
 
-        const tries = options.retry || 1;
-        const delay = options.delay || 100;
+        const tries = options.retry || config.retry || 1;
+        const delay = options.delay || config.delay || 100;
         const ID = uuid();
 
         const _retryRequest = (tryCount) => {
@@ -134,11 +136,9 @@ module.exports = function (_config) {
     const run = function (properties, callbackPromise) {
 
         let out = [];
-        let failureCount = 0,
-            error;
-
-
+        let failureCount = 0;
         let index = 0;
+
         return promiseFor((next) => {
             return (next);
         }, (thisURL) => {
@@ -179,7 +179,7 @@ module.exports = function (_config) {
 
                     /* if module runs in simple mode (simple = true), non 2xx status code will not be handled automatically by it.
                        in a case of 4xx we throw an error to trigger the token refresh in the catch function below. */
-                    if (options.simple === false && (/^4/.test('' + response.statusCode))) { // Status Codes 4xx
+                    if (options.simple === false && ((/^4/).test(String(response.statusCode)))) { // Status Codes 4xx
                         throw {
                             statusCode: response.statusCode,
                             message: 'WTF!'
