@@ -1,9 +1,10 @@
-var rp = require('request-promise');
-var parseLH = require('parse-link-header');
-var Promise = require('bluebird');
+const rp = require('request-promise');
+const parseLH = require('parse-link-header');
+const Promise = require('bluebird');
+const uuid = require('uuid/v4');
 
-var userAgent = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36";
-
+const USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36";
+const RETRY_CODES = ['ECONNRESET', 'ENOTFOUND', 'ESOCKETTIMEDOUT', 'ETIMEDOUT', 'ECONNREFUSED', 'EHOSTUNREACH', 'EPIPE', 'EAI_AGAIN'];
 
 /**
  * get details from URL
@@ -28,7 +29,7 @@ function getLocation(href) {
 
 module.exports = function (_config) {
 
-    var config = Object.assign({
+    const config = Object.assign({
         hostName: null, // e.g. "https://dev14080.service-now.com" 
         proxy: {
             proxy: null,
@@ -52,17 +53,77 @@ module.exports = function (_config) {
 
     rp.debug = config.debug;
 
-    var log = function () {
+    const rpd = rp.defaults({
+        json: true,
+        baseUrl: config.hostName,
+        gzip: config.gzip,
+        strictSSL: config.proxy.strictSSL,
+        proxy: config.proxy.proxy,
+        encoding: "utf8",
+        headers: {
+            "User-Agent": USER_AGENT
+        },
+        jar: config.jar
+    });
+
+    const log = function () {
         if (!config.silent)
-            console.log.apply(this, arguments);
+            console.info.apply(this, arguments);
     };
 
 
-    var promiseFor = Promise.method(function (condition, action, value) {
+    const promiseFor = Promise.method(function (condition, action, value) {
         if (!condition(value))
             return value;
         return action(value).then(promiseFor.bind(null, condition, action));
     });
+
+
+    const retryRequest = function (options) {
+
+        const tries = options.retry || 1;
+        const delay = options.delay || 100;
+        const ID = uuid();
+
+        const _retryRequest = (tryCount) => {
+            return rpd(options).then((result) => {
+                if (options.verbose_logging) {
+                    console.log(`Result obtained for ${options.method} request to ${options.url} run '${tryCount} of total ${tries}, req-id: ${ID}'`);
+                }
+                return Promise.resolve(result);
+            }).catch((err) => {
+                // oauth must throw err
+                if (!config.auth.username && [400, 401].indexOf(err.statusCode) != -1) {
+                    return Promise.reject(err)
+                }
+
+                const errorCode = (err.error && err.error.code) ? err.error.code : null;
+                const statusCode = (err.statusCode !== undefined) ? err.statusCode : -1;
+
+                if (err.name == 'RequestError') {
+                    if (!RETRY_CODES.includes(errorCode))
+                        return Promise.reject(err)
+
+                } else if (err.name == 'StatusCodeError') {
+                    if (!(statusCode === 429 || (500 <= statusCode && statusCode < 600))) // 429 means "Too Many Requests" while 5xx means "Server Error"
+                        return Promise.reject(err)
+                } else {
+                    console.error('[SN-REST-CLIENT] Unknown error: %j', err)
+                    return Promise.reject(err)
+                }
+
+                console.warn(`[SN-REST-CLIENT] Encountered error '${errorCode || statusCode}' for '${options.method}' request to '${options.url}', retry run #${tries - tryCount + 1} of total ${tries} delay ${delay}ms, req-id: ${ID}`); //  (${err.message})
+
+                tryCount -= 1;
+                if (tryCount) {
+                    return Promise.delay(delay).then(() => _retryRequest(tryCount));
+                }
+                return Promise.reject(err);
+            });
+        }
+        return _retryRequest(tries);
+    }
+
 
     /**
      *  Execute REST call. Verb to be provided as method property or use the convenience method e.g. get(), post() 
@@ -70,32 +131,23 @@ module.exports = function (_config) {
      * @param {*} properties 
      * @param {Promise} callbackPromise if provided, will be executed after every page / block of results
      */
-    var run = function (properties, callbackPromise) {
+    const run = function (properties, callbackPromise) {
 
-        var out = [];
-        var failureCount = 0,
+        let out = [];
+        let failureCount = 0,
             error;
-        var rpd = rp.defaults({
-            json: true,
-            baseUrl: config.hostName,
-            gzip: config.gzip,
-            strictSSL: config.proxy.strictSSL,
-            proxy: config.proxy.proxy,
-            encoding: "utf8",
-            headers: {
-                "User-Agent": userAgent
-            },
-            jar: config.jar
-        });
 
-        var index = 0;
-        return promiseFor(function (next) {
+
+        let index = 0;
+        return promiseFor((next) => {
             return (next);
-        }, function (thisURL) {
+        }, (thisURL) => {
 
             var options = Object.assign({
                 rawResponse: false,
-                autoPagination: true
+                autoPagination: true,
+                retry: 1,
+                delay: 100,
             }, properties, {
                 url: thisURL,
                 resolveWithFullResponse: true
@@ -111,9 +163,9 @@ module.exports = function (_config) {
                     "bearer": config.auth.accessToken
                 };
             }
-            
-            return rpd(options)
-                .then(function (response) {
+
+            return retryRequest(options)
+                .then((response) => {
                     //log("options.simple ::: ", options.simple)
 
                     var hasNextURL = false;
@@ -148,10 +200,9 @@ module.exports = function (_config) {
                     if (callbackPromise !== undefined) {
                         log("executing callback inline with results");
                         if (body && body.result) {
-                            return callbackPromise(body.result)
-                                .then(function () {
-                                    return hasNextURL;
-                                });
+                            return callbackPromise(body.result).then(() => {
+                                return hasNextURL;
+                            });
                         } else {
                             throw Error("response body has no results[] property, execute callback!");
                         }
@@ -166,45 +217,42 @@ module.exports = function (_config) {
                     }
                     return hasNextURL;
 
-                }).catch(function (err) {
+                }).catch((err) => {
                     if (config.auth.username)
                         throw err;
-                    
-                    error = err;
+
                     if ([400, 401].indexOf(err.statusCode) != -1 && failureCount < 1) { // 400 in case its the application or updateSet API
                         log("access_token expired, request new one");
                         failureCount++;
                         return rpd({
-                                method: "POST",
-                                url: "oauth_token.do",
-                                form: {
-                                    grant_type: "refresh_token",
-                                    client_id: config.auth.clientId,
-                                    client_secret: config.auth.clientSecret,
-                                    refresh_token: config.auth.refreshToken
-                                }
-                            })
-                            .then(function (body) {
-                                if (!body.access_token) {
-                                    throw new Error('No Access token found');
-                                }
-                                // update config with access_token
-                                //log("body ACCESS TOKEN", body);
-                                config.auth.accessToken = body.access_token;
-                                config.auth.refreshToken = body.refresh_token;
-                            })
-                            .then(function () {
-                                return thisURL;
-                            })
-                            .catch(function (err) {
-                                throw error;
-                            });
+                            method: "POST",
+                            url: "oauth_token.do",
+                            form: {
+                                grant_type: "refresh_token",
+                                client_id: config.auth.clientId,
+                                client_secret: config.auth.clientSecret,
+                                refresh_token: config.auth.refreshToken
+                            }
+                        }).then((body) => {
+                            if (!body.access_token) {
+                                throw new Error('No Access token found');
+                            }
+                            // update config with access_token
+                            //log("body ACCESS TOKEN", body);
+                            config.auth.accessToken = body.access_token;
+                            config.auth.refreshToken = body.refresh_token;
+                        }).then(() => {
+                            return thisURL;
+                        }).catch((e) => {
+                            console.error("Oauth token refresh failed", e);
+                            throw err;
+                        });
                     } else {
                         throw err;
                     }
                 });
 
-        }, properties.url).then(function () {
+        }, properties.url).then(() => {
             return out;
         });
     };
