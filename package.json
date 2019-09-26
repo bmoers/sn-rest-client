@@ -9,10 +9,11 @@
   "author": "Boris Moers",
   "license": "LGPL-3.0",
   "dependencies": {
-    "bluebird": "^3.5.3",
+    "bluebird": "^3.5.5",
     "parse-link-header": "^0.4.1",
     "request": "^2.88.0",
-    "request-promise": "^4.2.4"
+    "request-promise": "^4.2.4",
+    "uuid": "^3.3.3"
   },
   "devDependencies": {},
   "repository": {
