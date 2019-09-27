@@ -92,7 +92,6 @@ module.exports = function (_config) {
                 if (options.verbose_logging) {
                     console.log(`Result obtained for ${options.method} request to ${options.url} run '${tryCount} of total ${tries}, req-id: ${ID}'`);
                 }
-                throw { statusCode: 202, name: 'StatusCodeError' };
                 return Promise.resolve(result);
             }).catch((err) => {
                 // oauth must throw err
