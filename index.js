@@ -114,10 +114,9 @@ module.exports = function (_config) {
                     return Promise.reject(err)
                 }
 
-                console.warn(`[SN-REST-CLIENT] Encountered error '${errorCode || statusCode}' for '${options.method}' request to '${options.url}', retry run #${tries - tryCount + 1} of total ${tries} delay ${delay}ms, req-id: ${ID}`); //  (${err.message})
-
                 tryCount -= 1;
                 if (tryCount) {
+                    console.warn(`[SN-REST-CLIENT] Encountered error '${errorCode || statusCode}' for '${options.method}' request to '${options.url}', retry run #${tries - tryCount + 2} of total ${tries} delay ${delay}ms, req-id: ${ID}`); //  (${err.message})
                     return Promise.delay(delay).then(() => _retryRequest(tryCount));
                 }
                 return Promise.reject(err);
