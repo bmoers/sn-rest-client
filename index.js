@@ -210,8 +210,6 @@ module.exports = function (_config) {
                         log("appending chunk: ", ++index, " from URL:", options.url);
                         if (body && body.result) {
                             out = out.concat(body.result);
-                        } else {
-                            console.warn("response body has no results[] property, cant append to result!");
                         }
                     }
                     return hasNextURL;
