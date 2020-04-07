@@ -1,6 +1,6 @@
 {
   "name": "sn-rest-client",
-  "version": "2.1.6",
+  "version": "2.1.7",
   "description": "A simple REST client for ServiceNow",
   "main": "index.js",
   "scripts": {
@@ -9,11 +9,11 @@
   "author": "Boris Moers",
   "license": "LGPL-3.0",
   "dependencies": {
-    "bluebird": "^3.5.5",
+    "bluebird": "^3.7.2",
     "parse-link-header": "^0.4.1",
-    "request": "^2.88.0",
-    "request-promise": "^4.2.4",
-    "uuid": "^3.3.3"
+    "request": "^2.88.2",
+    "request-promise": "^4.2.5",
+    "uuid": "^3.4.0"
   },
   "devDependencies": {},
   "repository": {
