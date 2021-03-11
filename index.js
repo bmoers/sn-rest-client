@@ -1,7 +1,7 @@
 const rp = require('request-promise');
 const parseLH = require('parse-link-header');
 const Promise = require('bluebird');
-const uuid = require('uuid/v4');
+const { v4: uuid } = require('uuid');
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36";
 const RETRY_CODES = ['ECONNRESET', 'ENOTFOUND', 'ESOCKETTIMEDOUT', 'ETIMEDOUT', 'ECONNREFUSED', 'EHOSTUNREACH', 'EPIPE', 'EAI_AGAIN'];
