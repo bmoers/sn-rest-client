@@ -3,7 +3,7 @@ const parseLH = require('parse-link-header');
 const Promise = require('bluebird');
 const { v4: uuid } = require('uuid');
 
-const USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36";
+const USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.99 Safari/537.36';
 const RETRY_CODES = ['ECONNRESET', 'ENOTFOUND', 'ESOCKETTIMEDOUT', 'ETIMEDOUT', 'ECONNREFUSED', 'EHOSTUNREACH', 'EPIPE', 'EAI_AGAIN'];
 
 /**
@@ -13,7 +13,7 @@ const RETRY_CODES = ['ECONNRESET', 'ENOTFOUND', 'ESOCKETTIMEDOUT', 'ETIMEDOUT', 
  * @returns
  */
 function getLocation(href) {
-    var match = href.match(/^(https?\:)\/\/(([^:\/?#]*)(?:\:([0-9]+))?)([\/]{0,1}[^?#]*)(\?[^#]*|)(#.*|)$/);
+    var match = href.match(/^(https?:)\/\/(([^:/?#]*)(?::([0-9]+))?)([/]{0,1}[^?#]*)(\?[^#]*|)(#.*|)$/);
     return match && {
         protocol: match[1],
         host: match[2],
@@ -61,9 +61,9 @@ module.exports = function (_config) {
         gzip: config.gzip,
         strictSSL: config.proxy.strictSSL,
         proxy: config.proxy.proxy,
-        encoding: "utf8",
+        encoding: 'utf8',
         headers: {
-            "User-Agent": USER_AGENT
+            'User-Agent': USER_AGENT
         },
         jar: config.jar
     });
@@ -96,7 +96,7 @@ module.exports = function (_config) {
             }).catch((err) => {
                 // oauth must throw err
                 if (!config.auth.username && [400, 401].indexOf(err.statusCode) != -1) {
-                    return Promise.reject(err)
+                    return Promise.reject(err);
                 }
 
                 const errorCode = (err.error && err.error.code) ? err.error.code : null;
@@ -104,14 +104,14 @@ module.exports = function (_config) {
 
                 if (err.name == 'RequestError') {
                     if (!RETRY_CODES.includes(errorCode))
-                        return Promise.reject(err)
+                        return Promise.reject(err);
 
                 } else if (err.name == 'StatusCodeError') {
                     if (!(statusCode === 429 || (500 <= statusCode && statusCode < 600)))  // 429 means "Too Many Requests" while 5xx means "Server Error"
-                        return Promise.reject(err)
+                        return Promise.reject(err);
                 } else {
-                    console.error('[SN-REST-CLIENT] Unknown error: %j', err)
-                    return Promise.reject(err)
+                    console.error('[SN-REST-CLIENT] Unknown error: %j', err);
+                    return Promise.reject(err);
                 }
 
                 tryCount -= 1;
@@ -121,9 +121,9 @@ module.exports = function (_config) {
                 }
                 return Promise.reject(err);
             });
-        }
+        };
         return _retryRequest(tries);
-    }
+    };
 
 
     /**
@@ -159,7 +159,7 @@ module.exports = function (_config) {
                 };
             } else {
                 options.auth = {
-                    "bearer": config.auth.accessToken
+                    'bearer': config.auth.accessToken
                 };
             }
 
@@ -187,27 +187,27 @@ module.exports = function (_config) {
 
                     if (options.rawResponse) { // this is used in XML update set export 
                         if (!hasNextURL) {
-                            log("return raw response");
+                            log('return raw response');
                             out = response;
                             return hasNextURL;
                         } else {
-                            throw Error("cant return raw response as there is a next page!");
+                            throw Error('cant return raw response as there is a next page!');
                         }
                     }
 
                     var body = response.body;
                     if (callbackPromise !== undefined) {
-                        log("executing callback inline with results");
+                        log('executing callback inline with results');
                         if (body && body.result) {
                             return callbackPromise(body.result).then(() => {
                                 return hasNextURL;
                             });
                         } else {
-                            throw Error("response body has no results[] property, execute callback!");
+                            throw Error('response body has no results[] property, execute callback!');
                         }
 
                     } else {
-                        log("appending chunk: ", ++index, " from URL:", options.url);
+                        log('appending chunk: ', ++index, ' from URL:', options.url);
                         if (body && body.result) {
                             out = out.concat(body.result);
                         }
@@ -219,13 +219,13 @@ module.exports = function (_config) {
                         throw err;
 
                     if ([400, 401].indexOf(err.statusCode) != -1 && failureCount < 1) { // 400 in case its the application or updateSet API
-                        log("access_token expired, request new one");
+                        log('access_token expired, request new one');
                         failureCount++;
                         return rpd({
-                            method: "POST",
-                            url: "oauth_token.do",
+                            method: 'POST',
+                            url: 'oauth_token.do',
                             form: {
-                                grant_type: "refresh_token",
+                                grant_type: 'refresh_token',
                                 client_id: config.auth.clientId,
                                 client_secret: config.auth.clientSecret,
                                 refresh_token: config.auth.refreshToken
@@ -241,7 +241,7 @@ module.exports = function (_config) {
                         }).then(() => {
                             return thisURL;
                         }).catch((e) => {
-                            console.error("Oauth token refresh failed", e);
+                            console.error('Oauth token refresh failed', e);
                             throw err;
                         });
                     } else {
