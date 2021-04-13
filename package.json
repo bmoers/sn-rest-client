@@ -27,5 +27,9 @@
   "bugs": {
     "url": "https://github.com/bmoers/sn-rest-client/issues"
   },
-  "homepage": "https://github.com/bmoers/sn-rest-client#readme"
+  "homepage": "https://github.com/bmoers/sn-rest-client#readme",
+  "devDependencies": {
+    "eslint": "^7.24.0",
+    "eslint-config-standard": "^16.0.2"
+  }
 }
