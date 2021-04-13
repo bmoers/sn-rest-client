@@ -62,5 +62,4 @@ typings/
 develop
 dev
 /vscodeignore
-/eslintrc.json
-/jsconfig.json
+
