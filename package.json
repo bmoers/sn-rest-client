@@ -1,6 +1,6 @@
 {
   "name": "sn-rest-client",
-  "version": "2.1.12",
+  "version": "2.1.13",
   "description": "A simple REST client for ServiceNow",
   "main": "index.js",
   "scripts": {
