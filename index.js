@@ -169,7 +169,13 @@ module.exports = function (_config) {
 
                     var hasNextURL = false;
                     if (options.autoPagination && response.headers.link) {
-                        var links = parseLH(response.headers.link);
+                        /* fix 
+                            turn this:
+                            <https://api.github.com/user/9287/repos?page=3&per_page=100;rel="next">
+                            into this:
+                            <https://api.github.com/user/9287/repos?page=3&per_page=100>;rel="next"
+                        */
+                        var links = parseLH(response.headers.link.replace(/;\s*rel="([^"]+)">/gi,'>;rel="$1"'));
                         if (links.next) {
                             hasNextURL = getLocation(links.next.url).path;
                         }
